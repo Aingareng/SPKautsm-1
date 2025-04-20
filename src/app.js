@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import eventRouts from './routes/router.js';
-import { probalitasPrior,likelihood,probalitasPostrior } from './controller/naiveBayesControler.js';
+
 
 // Inisialisasi app
 const app = express();

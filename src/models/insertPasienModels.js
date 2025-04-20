@@ -1,7 +1,7 @@
 import pool from '../config/database.js'
 
 export async function insertPasien(name,age,sex,juandice,familyAsd) {
-    if(!nama || !age || !sex || juandice== undefined || familyAsd === undefined){
+    if(!name || !age || !sex || juandice== undefined || familyAsd === undefined){
         return{
             success: false,
             error: 'Semua field (name, age, sex, juandice, familyAsd) wajib diisi!',
