@@ -10,9 +10,9 @@ export async function loginController(req,res) {
                 res.status(401).json({message:"Password & Username tidak sesuai"});
             }
         }else{
-            res.status(404).json({message:"User not found"});
+            res.status(404).json({message:"User tidak ditemukan"});
         }
-        res.status(200).json({message:"Login success",data:user});
+        res.status(200).json({message:"Login berhasil",data:user});
     }
     catch(error){
         res.status(500).json({error:error.message});
