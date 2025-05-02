@@ -1,115 +1,112 @@
-import { probalitasPrior, likelihood } from './naiveBayesControler.js';
-import { insertResultPasien } from '../models/pasienResultsModels.js';
+import { calculatePriorAndLikelihood } from "./naiveBayesControler.js";
+import { insertResultPasien } from "../models/pasienResultsModels.js";
 
-export async function kalkulasiNaiveByaesPasien(req, res) {
+export async function calculateNaiveBayesForPatient(req, res) {
   try {
     const inputPasien = req.body;
 
-  
-    if (!inputPasien.idUser) {
+    // Validasi input
+    if (!inputPasien.idUser || typeof inputPasien.idUser !== "string") {
       return res.status(400).json({
         status: 400,
-        message: 'ID User tidak ditemukan',
-        data: null
+        message: "ID User tidak valid",
+        data: null,
       });
     }
 
-  
+    const answers = {};
     const missingAnswers = [];
     for (let i = 1; i <= 10; i++) {
       const key = `A${i}`;
-      if (!inputPasien[key]) {
+      const answer = inputPasien[key]?.toUpperCase();
+      if (!["YES", "NO"].includes(answer)) {
         missingAnswers.push(key);
+      } else {
+        answers[key] = answer;
       }
     }
 
     if (missingAnswers.length > 0) {
+      console.log("Missing or invalid answers:", missingAnswers);
       return res.status(400).json({
         status: 400,
-        message: `Jawaban untuk ${missingAnswers.join(', ')} tidak ditemukan`,
-        data: null
+        message: `Jawaban tidak valid untuk ${missingAnswers.join(", ")}`,
+        data: null,
       });
     }
 
-    
-    const { 
-      likelihoodYesAsdYes, 
-      likelihoodNoAsdYes, 
-      likelihoodYesAsdNo, 
-      likelihoodNoAsdNo 
-    } = await likelihood();
-    
-    const { asdYESPrior, asdNoPrior } = await probalitasPrior();
+    // Ambil prior dan likelihood
+    const {
+      asdYESPrior,
+      asdNoPrior,
+      likelihoodYesAsdYes,
+      likelihoodNoAsdYes,
+      likelihoodYesAsdNo,
+      likelihoodNoAsdNo,
+    } = await calculatePriorAndLikelihood();
 
-    
+    // Hitung log posterior
     let logYes = Math.log(asdYESPrior);
     let logNo = Math.log(asdNoPrior);
 
     for (let i = 1; i <= 10; i++) {
       const key = `A${i}`;
-      const jawaban = inputPasien[key].toUpperCase();
-
-      if (jawaban === 'YES') {
-        logYes += Math.log(likelihoodYesAsdYes[key]);
-        logNo += Math.log(likelihoodYesAsdNo[key]);
-      } else {
-        logYes += Math.log(likelihoodNoAsdYes[key]);
-        logNo += Math.log(likelihoodNoAsdNo[key]);
-      }
+      const isYes = answers[key] === "YES";
+      logYes += Math.log(isYes ? likelihoodYesAsdYes[key] : likelihoodNoAsdYes[key]);
+      logNo += Math.log(isYes ? likelihoodYesAsdNo[key] : likelihoodNoAsdNo[key]);
     }
 
-    
+    // Hitung posterior dan normalisasi
     const posteriorYES = Math.exp(logYes);
     const posteriorNO = Math.exp(logNo);
-    const hasilKlasifikasi = posteriorYES > posteriorNO ? 'YES' : 'NO';
-    const confidence = Math.max(posteriorYES, posteriorNO);
+    const totalPosterior = posteriorYES + posteriorNO;
+    const normalizedYES = posteriorYES / totalPosterior; // Untuk asd_presentasi
+    const normalizedNO = posteriorNO / totalPosterior; // Untuk nonAsd_presentasi
 
-    
+    const hasilKlasifikasi = normalizedYES > normalizedNO ? "YES" : "NO";
+
+    // Simpan hasil ke database
     const saveResult = await insertResultPasien({
-      idUser: inputPasien.idUser,
-      a1: inputPasien.A1,
-      a2: inputPasien.A2,
-      a3: inputPasien.A3,
-      a4: inputPasien.A4,
-      a5: inputPasien.A5,
-      a6: inputPasien.A6,
-      a7: inputPasien.A7,
-      a8: inputPasien.A8,
-      a9: inputPasien.A9,
-      a10: inputPasien.A10,
-      postrior: confidence,
-      hasil: hasilKlasifikasi
+      pasienId: inputPasien.idUser, // Ganti idUser menjadi pasienId
+      a1: answers.A1,
+      a2: answers.A2,
+      a3: answers.A3,
+      a4: answers.A4,
+      a5: answers.A5,
+      a6: answers.A6,
+      a7: answers.A7,
+      a8: answers.A8,
+      a9: answers.A9,
+      a10: answers.A10,
+      asdPresentasi: normalizedYES, // Simpan probabilitas YES
+      nonAsdPresentasi: normalizedNO, // Simpan probabilitas NO
     });
 
-    if (!saveResult || !saveResult.success) {
+    if (!saveResult.success) {
       return res.status(500).json({
         status: 500,
-        message: 'Gagal menyimpan hasil klasifikasi',
-        data: null
+        message: `Gagal menyimpan hasil klasifikasi: ${saveResult.error || "Unknown error"}`,
+        data: null,
       });
     }
 
-    
+    // Kirim respons
     return res.status(200).json({
       status: 200,
-      message: 'Klasifikasi berhasil dilakukan',
+      message: "Klasifikasi berhasil dilakukan",
       data: {
         hasil: hasilKlasifikasi,
-        confidence: confidence,
-        details: {
-          posteriorYES: posteriorYES,
-          posteriorNO: posteriorNO
-        },
-        savedData: saveResult.data
-      }
+        asdPresentasi: normalizedYES.toFixed(4),
+        nonAsdPresentasi: normalizedNO.toFixed(4),
+        savedData: saveResult.data,
+      },
     });
-
   } catch (error) {
-    console.error("Error dalam kalkulasi Naive Bayes:", error);
+    console.error("Error in Naive Bayes calculation:", error);
     return res.status(500).json({
       status: 500,
-      message: 'Terjadi kesalahan server dalam proses klasifikasi',
-      data: null
+      message: "Terjadi kesalahan server dalam proses klasifikasi",
+      data: null,
     });
   }
 }
