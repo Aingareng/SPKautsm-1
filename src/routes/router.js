@@ -9,7 +9,6 @@ const router = express.Router();
 
 router.get("/getQchat10", async (req, res) => {
   const result = await kuisonerControllers(req, res);
-  res.status(200).json({ message: "Get kuisoner Q-CHAT-10 berhasil", data: result });
 });
 
 router.post("/postLogin", async (req, res) => {
