@@ -8,8 +8,8 @@ export async function calculatePriorAndLikelihood() {
     const totalData = data.total_data;
     const totalYes = data.total_yes;
     const totalNo = data.total_no;
-    const asdYESPrior = (totalYes / totalData).toFixed(4);
-    const asdNoPrior = (totalNo / totalData).toFixed(4);
+    const asdYESPrior = (totalYes / totalData);
+    const asdNoPrior = (totalNo / totalData);
 
     // Likelihood dengan Laplace Smoothing
     const likelihoodYesAsdYes = {};
@@ -24,10 +24,10 @@ export async function calculatePriorAndLikelihood() {
       const keyNoClassNo = `totalNO_A${i}_ClassNo`;
 
       // Laplace Smoothing: (count + 1) / (total + 2)
-      likelihoodYesAsdYes[`A${i}`] = ((data[keyYesClassYes] + 1) / (totalYes + 2)).toFixed(4);
-      likelihoodNoAsdYes[`A${i}`] = ((data[keyNoClassYes] + 1) / (totalYes + 2)).toFixed(4);
-      likelihoodYesAsdNo[`A${i}`] = ((data[keyYesClassNo] + 1) / (totalNo + 2)).toFixed(4);
-      likelihoodNoAsdNo[`A${i}`] = ((data[keyNoClassNo] + 1) / (totalNo + 2)).toFixed(4);
+      likelihoodYesAsdYes[`A${i}`] = ((data[keyYesClassYes] + 1) / (totalYes + 2));
+      likelihoodNoAsdYes[`A${i}`] = ((data[keyNoClassYes] + 1) / (totalYes + 2));
+      likelihoodYesAsdNo[`A${i}`] = ((data[keyYesClassNo] + 1) / (totalNo + 2));
+      likelihoodNoAsdNo[`A${i}`] = ((data[keyNoClassNo] + 1) / (totalNo + 2));
     }
 
     return {
