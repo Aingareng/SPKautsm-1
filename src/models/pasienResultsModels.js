@@ -3,13 +3,22 @@ import pool from "../config/database.js";
 export async function insertResultPasien(data) {
   const {
     pasienId,
-    a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
+    a1,
+    a2,
+    a3,
+    a4,
+    a5,
+    a6,
+    a7,
+    a8,
+    a9,
+    a10,
     asdPresentasi, // Probabilitas posterior YES
     nonAsdPresentasi, // Probabilitas posterior NO
   } = data;
 
   // Konversi YES/NO ke 1/0 untuk A1-A10
-  const answers = [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10].map(answer =>
+  const answers = [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10].map((answer) =>
     answer.toUpperCase() === "YES" ? 1 : 0
   );
 
@@ -18,17 +27,17 @@ export async function insertResultPasien(data) {
 
   try {
     const query = `
-      INSERT INTO pasien_results 
-      (pasien_id, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, asd_presentasi, nonAsd_presentasi, Tanggal_periksa)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    INSERT INTO pasien_results 
+    (pasien_id, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, asd_presentasi, nonAsd_presentasi, Tanggal_periksa)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
 
     const values = [
       pasienId,
       ...answers, // A1-A10 (1 atau 0)
       asdPresentasi,
       nonAsdPresentasi,
-      currentDate
+      currentDate,
     ];
 
     const [result] = await pool.query(query, values);
@@ -50,14 +59,14 @@ export async function insertResultPasien(data) {
         a10: answers[9],
         asdPresentasi,
         nonAsdPresentasi,
-        Tanggal_periksa: currentDate
-      }
+        Tanggal_periksa: currentDate,
+      },
     };
   } catch (error) {
     console.error("Error saat insert data pasien:", error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -66,13 +75,17 @@ export async function getPatientResult(pasienId) {
   try {
     const query = `
       SELECT 
-        pasien_id, 
-        A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, 
-        asd_presentasi, 
-        nonAsd_presentasi, 
-        Tanggal_periksa 
-      FROM pasien_results 
-      WHERE pasien_id = ?
+        pr.pasien_id, 
+        p.name AS nama_pasien, 
+        p.age AS umur_pasien, 
+        p.sex AS jenis_kelamin_pasien, 
+        pr.A1, pr.A2, pr.A3, pr.A4, pr.A5, pr.A6, pr.A7, pr.A8, pr.A9, pr.A10, 
+        pr.asd_presentasi, 
+        pr.nonAsd_presentasi, 
+        pr.Tanggal_periksa 
+      FROM pasien_results pr
+      LEFT JOIN pasien p ON pr.pasien_id = p.id
+      WHERE pr.pasien_id = ?
     `;
     const [rows] = await pool.query(query, [pasienId]);
 
@@ -89,6 +102,9 @@ export async function getPatientResult(pasienId) {
 
     return {
       pasienId: result.pasien_id,
+      pasienName: result.nama_pasien,
+      pasienAge: result.umur_pasien,
+      pasienSex: result.jenis_kelamin_pasien,
       answers,
       asdPresentasi: result.asd_presentasi,
       nonAsdPresentasi: result.nonAsd_presentasi,

@@ -8,8 +8,7 @@ import { getNaiveBayesResult } from "../controller/naiveBayesResultController.js
 const router = express.Router();
 
 router.get("/getQchat10", async (req, res) => {
-  const result = await kuisonerControllers(req, res);
-  res.status(200).json({ message: "Get kuisoner Q-CHAT-10 berhasil", data: result });
+  kuisonerControllers(req, res);
 });
 
 router.post("/postLogin", async (req, res) => {
